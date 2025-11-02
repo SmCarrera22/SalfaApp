@@ -30,6 +30,7 @@ import com.example.salfaapp.domain.usecase.AsignarTallerUseCase
 import com.example.salfaapp.domain.usecase.ListarVehiculosPorEstadoUseCase
 import com.example.salfaapp.domain.usecase.RegistrarVehiculoUseCase
 import com.example.salfaapp.ui.theme.SalfaAppTheme
+import com.example.salfaapp.ui.screens.LoginScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,33 +77,46 @@ class MainActivity : ComponentActivity() {
 @PreviewScreenSizes
 @Composable
 fun SalfaAppApp() {
-    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
+    var isLoggedIn by rememberSaveable { mutableStateOf(false) }
 
-    NavigationSuiteScaffold(
-        navigationSuiteItems = {
-            AppDestinations.entries.forEach {
-                item(
-                    icon = {
-                        Icon(
-                            it.icon,
-                            contentDescription = it.label
-                        )
-                    },
-                    label = { Text(it.label) },
-                    selected = it == currentDestination,
-                    onClick = { currentDestination = it }
+    if (!isLoggedIn) {
+        // Mostramos la pantalla de login
+        LoginScreen(
+            onLoginSuccess = {
+                isLoggedIn = true
+            }
+        )
+    } else {
+        // Cuando el usuario inicia sesión, mostramos el dashboard
+        var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
+
+        NavigationSuiteScaffold(
+            navigationSuiteItems = {
+                AppDestinations.entries.forEach {
+                    item(
+                        icon = {
+                            Icon(
+                                it.icon,
+                                contentDescription = it.label
+                            )
+                        },
+                        label = { Text(it.label) },
+                        selected = it == currentDestination,
+                        onClick = { currentDestination = it }
+                    )
+                }
+            }
+        ) {
+            Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                Greeting(
+                    name = "Android",
+                    modifier = Modifier.padding(innerPadding)
                 )
             }
         }
-    ) {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            Greeting(
-                name = "Android",
-                modifier = Modifier.padding(innerPadding)
-            )
-        }
     }
 }
+
 
 enum class AppDestinations(
     val label: String,
