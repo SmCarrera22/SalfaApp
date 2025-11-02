@@ -23,11 +23,47 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
+import com.example.salfaapp.domain.model.EstadoVehiculo
+import com.example.salfaapp.domain.model.Vehiculo
+import com.example.salfaapp.domain.usecase.ActualizarEstadoVehiculoUseCase
+import com.example.salfaapp.domain.usecase.AsignarTallerUseCase
+import com.example.salfaapp.domain.usecase.ListarVehiculosPorEstadoUseCase
+import com.example.salfaapp.domain.usecase.RegistrarVehiculoUseCase
 import com.example.salfaapp.ui.theme.SalfaAppTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val listaVehiculos = mutableListOf<Vehiculo>()
+
+        val registrarVehiculo = RegistrarVehiculoUseCase(listaVehiculos)
+        val actualizarEstado = ActualizarEstadoVehiculoUseCase(listaVehiculos)
+        val asignarTaller = AsignarTallerUseCase(listaVehiculos)
+        val listarPorEstado = ListarVehiculosPorEstadoUseCase(listaVehiculos)
+
+        // --- Pruebas de CRUD ---
+        val v1 = Vehiculo(1, "Volkswagen", "Golf MK7", 2018, "Hatchback", "KVVZ63", EstadoVehiculo.Nuevo_Ingreso, "Nuevo ingreso")
+
+        val v2 = Vehiculo(2, "Chery", "Tiggo 7 Pro", 2022, "Suv", "RRLX22", EstadoVehiculo.Pendiente_Revision, "Nuevo Ingreso")
+
+        registrarVehiculo(v1)
+        registrarVehiculo(v2)
+        print("Vehículos registrados:")
+        listaVehiculos.forEach { println(it) }
+
+        actualizarEstado(1, EstadoVehiculo.Espera_Taller_Mecanico)
+        println("Después de actualizar estado:")
+        listaVehiculos.forEach { println(it) }
+
+        asignarTaller(1, "Taller Mecánico Central")
+        println("Después de asignar taller:")
+        listaVehiculos.forEach { println(it) }
+
+        val enRevision = listarPorEstado(EstadoVehiculo.Pendiente_Revision)
+        println("Vehículos en revisión:")
+        enRevision.forEach { println(it) }
+
         enableEdgeToEdge()
         setContent {
             SalfaAppTheme {
