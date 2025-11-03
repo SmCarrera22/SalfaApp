@@ -8,6 +8,7 @@ import com.example.salfaapp.domain.model.Vehiculo
 import com.example.salfaapp.ui.components.SalfaScaffold
 import com.example.salfaapp.ui.screens.CarProfileScreen
 import com.example.salfaapp.ui.screens.DashboardScreen
+import com.example.salfaapp.ui.screens.VehicleFormScreen
 import com.example.salfaapp.ui.screens.VehicleListScreen
 
 @Composable
@@ -43,7 +44,8 @@ fun AppNavHost(
                 // Llamada sin pasar modifier
                 VehicleListScreen(
                     vehiculos = vehiculos,
-                    onVehiculoClick = { navController.navigate(NavRoutes.CarProfile.route) }
+                    onVehiculoClick = { navController.navigate(NavRoutes.CarProfile.route) },
+                    navController = navController
                 )
             }
         }
@@ -58,5 +60,16 @@ fun AppNavHost(
                 CarProfileScreen(navController = navController)
             }
         }
+
+        composable("vehicleForm") {
+            VehicleFormScreen(
+                navController = navController,
+                onLogout = {},
+                onSubmit = { marca, modelo, anio, tipo, patente, estado, sucursal, taller, obs ->
+                    // Aquí puedes manejar el guardado o navegación de regreso
+                }
+            )
+        }
+
     }
 }
