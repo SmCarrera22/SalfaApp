@@ -12,10 +12,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
+import androidx.navigation.NavHostController
 import com.example.salfaapp.ui.components.SalfaScaffold
 
 @Composable
 fun CarProfileScreen(
+    navController: NavHostController,
     patente: String = "KVVZ63",
     sucursal: String = "Santiago",
     marca: String = "Volkswagen",
@@ -29,7 +31,11 @@ fun CarProfileScreen(
     fechaIngreso: String = "12/03/2023",
     onLogout: () -> Unit = {}
 ) {
-    SalfaScaffold(title = "Salfa") { innerPadding ->
+    SalfaScaffold(
+        title = "Salfa",
+        navController = navController,
+        onLogout = onLogout
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -110,10 +116,4 @@ fun VehicleDetailItem(label: String, value: String) {
             style = MaterialTheme.typography.bodyMedium
         )
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun CarProfileScreenPreview() {
-    CarProfileScreen()
 }

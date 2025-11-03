@@ -8,15 +8,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.dp
-import com.example.salfaapp.ui.screens.VehicleListScreen
+import androidx.navigation.NavController
+import com.example.salfaapp.ui.navigation.NavRoutes
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SalfaScaffold(
     title: String,
-    onLogout: () -> Unit = {},
+    navController: NavController,
+    onLogout: () -> Unit,
     content: @Composable (PaddingValues) -> Unit
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -36,21 +38,32 @@ fun SalfaScaffold(
                 NavigationDrawerItem(
                     label = { Text("Inicio") },
                     selected = false,
-                    onClick = { /* TODO: Navegar a Dashboard */ },
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        navController.navigate(NavRoutes.Dashboard.route) {
+                            popUpTo(NavRoutes.Dashboard.route) { inclusive = true }
+                        }
+                    },
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
 
                 NavigationDrawerItem(
                     label = { Text("Vehículos") },
                     selected = false,
-                    onClick = {  },
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        navController.navigate(NavRoutes.VehicleList.route)
+                    },
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
 
                 NavigationDrawerItem(
                     label = { Text("Cerrar sesión") },
                     selected = false,
-                    onClick = { onLogout() },
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        onLogout()
+                    },
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
             }

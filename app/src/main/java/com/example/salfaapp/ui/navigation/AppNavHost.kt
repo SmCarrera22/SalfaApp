@@ -5,6 +5,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.salfaapp.domain.model.Vehiculo
+import com.example.salfaapp.ui.components.SalfaScaffold
 import com.example.salfaapp.ui.screens.CarProfileScreen
 import com.example.salfaapp.ui.screens.DashboardScreen
 import com.example.salfaapp.ui.screens.VehicleListScreen
@@ -20,23 +21,42 @@ fun AppNavHost(
         startDestination = NavRoutes.Dashboard.route
     ) {
         composable(NavRoutes.Dashboard.route) {
-            DashboardScreen(
-                onLogout = onLogout,
-                onNavigateToVehicles = {
-                    navController.navigate(NavRoutes.VehicleList.route)
-                }
-            )
+            SalfaScaffold(
+                title = "Dashboard Salfa",
+                navController = navController,
+                onLogout = onLogout
+            ) { innerPadding ->
+                // Llamada sin pasar modifier
+                DashboardScreen(
+                    onNavigateToVehicles = { navController.navigate(NavRoutes.VehicleList.route) },
+                    onLogout = onLogout
+                )
+            }
         }
 
         composable(NavRoutes.VehicleList.route) {
-            VehicleListScreen(
-                vehiculos = vehiculos,
-                onVehiculoClick = { navController.navigate(NavRoutes.CarProfile.route) }
-            )
+            SalfaScaffold(
+                title = "Vehículos",
+                navController = navController,
+                onLogout = onLogout
+            ) { innerPadding ->
+                // Llamada sin pasar modifier
+                VehicleListScreen(
+                    vehiculos = vehiculos,
+                    onVehiculoClick = { navController.navigate(NavRoutes.CarProfile.route) }
+                )
+            }
         }
 
         composable(NavRoutes.CarProfile.route) {
-            CarProfileScreen()
+            SalfaScaffold(
+                title = "Ficha del Vehículo",
+                navController = navController,
+                onLogout = onLogout
+            ) { innerPadding ->
+                // Llamada sin pasar modifier
+                CarProfileScreen(navController = navController)
+            }
         }
     }
 }
