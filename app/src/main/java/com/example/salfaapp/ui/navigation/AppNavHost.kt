@@ -41,12 +41,7 @@ fun AppNavHost(
                 navController = navController,
                 onLogout = onLogout
             ) { innerPadding ->
-                // Llamada sin pasar modifier
-                VehicleListScreen(
-                    vehiculos = vehiculos,
-                    onVehiculoClick = { navController.navigate(NavRoutes.CarProfile.route) },
-                    navController = navController
-                )
+                VehicleListScreen(navController = navController)
             }
         }
 

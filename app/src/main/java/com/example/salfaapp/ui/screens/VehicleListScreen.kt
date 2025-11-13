@@ -6,21 +6,41 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.salfaapp.domain.model.Vehiculo
+import androidx.navigation.compose.rememberNavController
+import com.example.salfaapp.domain.model.data.config.AppDatabase
+import com.example.salfaapp.domain.model.data.entities.VehiculoEntity
 import com.example.salfaapp.ui.navigation.NavRoutes
+import com.example.salfaapp.ui.theme.SalfaAppTheme
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VehicleListScreen(
-    vehiculos: List<Vehiculo>,
-    onVehiculoClick: (Vehiculo) -> Unit,
     navController: NavController
 ) {
+    val context = navController.context
+    val db = remember { AppDatabase.getDatabase(context) }
+    val vehiculoDao = remember { db.vehiculoDao() }
+
+    // Estado que contendrá los vehículos obtenidos desde Room
+    var vehiculos by remember { mutableStateOf<List<VehiculoEntity>>(emptyList()) }
+
+    // Corrutina para recolectar el flujo de Room (Flow)
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(Unit) {
+        scope.launch {
+            vehiculoDao.getAllVehiculos().collectLatest { lista ->
+                vehiculos = lista
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -29,7 +49,7 @@ fun VehicleListScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { navController.navigate("vehicleForm") }, // 👈 ruta hacia el formulario
+                onClick = { navController.navigate(NavRoutes.VehicleForm.route) },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(
@@ -41,33 +61,47 @@ fun VehicleListScreen(
         },
         floatingActionButtonPosition = FabPosition.End
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(8.dp)
-        ) {
-            items(vehiculos) { vehiculo ->
-                Card(
-                    onClick = { onVehiculoClick(vehiculo) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 6.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                ) {
-                    Column(
+        if (vehiculos.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = androidx.compose.ui.Alignment.Center
+            ) {
+                Text("No hay vehículos registrados todavía.")
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(8.dp)
+            ) {
+                items(vehiculos) { vehiculo ->
+                    Card(
                         modifier = Modifier
-                            .padding(16.dp)
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        onClick = {
+                            // Aquí puedes navegar a un detalle o acción con el vehículo
+                        }
                     ) {
-                        Text(
-                            text = "Patente: ${vehiculo.patente}   |   ${vehiculo.sucursal}",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "${vehiculo.marca} ${vehiculo.modelo}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Patente: ${vehiculo.patente}  |  ${vehiculo.sucursal}",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "${vehiculo.marca} ${vehiculo.modelo} (${vehiculo.anio ?: "—"})",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "Estado: ${vehiculo.estado}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
                 }
             }
@@ -75,48 +109,11 @@ fun VehicleListScreen(
     }
 }
 
-@Composable
-fun VehiculoItem(x0: String, x1: String, x2: String, x3: String) {
-    TODO("Not yet implemented")
-}
-
 @Preview(showBackground = true)
 @Composable
 fun VehicleListScreenPreview() {
-    // Simulamos un NavController
-    val navController = androidx.navigation.compose.rememberNavController()
-
-    // Lista de prueba
-    val sampleVehiculos = listOf(
-        Vehiculo(
-            id = 1,
-            marca = "Volkswagen",
-            modelo = "Golf",
-            anio = 2018,
-            tipo = com.example.salfaapp.domain.model.TipoVehiculo.HATCHBACK,
-            patente = "KVVZ63",
-            estado = com.example.salfaapp.domain.model.EstadoVehiculo.Disponible,
-            sucursal = com.example.salfaapp.domain.model.Sucursal.Movicenter,
-            tallerAsignado = "Taller Central",
-            observaciones = "Listo para entrega"
-        ),
-        Vehiculo(
-            id = 2,
-            marca = "Toyota",
-            modelo = "Corolla",
-            anio = 2021,
-            tipo = com.example.salfaapp.domain.model.TipoVehiculo.SEDAN,
-            patente = "ABC123",
-            estado = com.example.salfaapp.domain.model.EstadoVehiculo.Pendiente_Revision,
-            sucursal = com.example.salfaapp.domain.model.Sucursal.Concepcion,
-            tallerAsignado = null,
-            observaciones = null
-        )
-    )
-
-    VehicleListScreen(
-        vehiculos = sampleVehiculos,
-        onVehiculoClick = {},
-        navController = navController
-    )
+    val navController = rememberNavController()
+    SalfaAppTheme {
+        VehicleListScreen(navController = navController)
+    }
 }

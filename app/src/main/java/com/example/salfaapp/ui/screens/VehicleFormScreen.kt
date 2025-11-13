@@ -11,14 +11,27 @@ import androidx.navigation.compose.rememberNavController
 import com.example.salfaapp.domain.model.EstadoVehiculo
 import com.example.salfaapp.domain.model.Sucursal
 import com.example.salfaapp.domain.model.TipoVehiculo
+import com.example.salfaapp.domain.model.data.config.AppDatabase
+import com.example.salfaapp.domain.model.data.entities.VehiculoEntity
 import com.example.salfaapp.ui.components.SalfaScaffold
 import com.example.salfaapp.ui.theme.SalfaAppTheme
+import kotlinx.coroutines.launch
 
 @Composable
 fun VehicleFormScreen(
     navController: NavController,
     onLogout: () -> Unit = {},
-    onSubmit: (marca: String, modelo: String, anio: Int?, tipo: TipoVehiculo, patente: String, estado: EstadoVehiculo, sucursal: Sucursal, taller: String?, observaciones: String?) -> Unit = { _, _, _, _, _, _, _, _, _ -> }
+    onSubmit: (
+        marca: String,
+        modelo: String,
+        anio: Int?,
+        tipo: TipoVehiculo,
+        patente: String,
+        estado: EstadoVehiculo,
+        sucursal: Sucursal,
+        taller: String?,
+        observaciones: String?
+    ) -> Unit = { _, _, _, _, _, _, _, _, _ -> }
 ) {
     var marca by remember { mutableStateOf("") }
     var modelo by remember { mutableStateOf("") }
@@ -29,6 +42,9 @@ fun VehicleFormScreen(
     var sucursal by remember { mutableStateOf(Sucursal.Autopark) }
     var tallerAsignado by remember { mutableStateOf("") }
     var observaciones by remember { mutableStateOf("") }
+
+    // ✅ Scope para corrutinas
+    val coroutineScope = rememberCoroutineScope()
 
     SalfaScaffold(
         title = "Nuevo Vehículo",
@@ -110,17 +126,26 @@ fun VehicleFormScreen(
 
             Button(
                 onClick = {
-                    onSubmit(
-                        marca,
-                        modelo,
-                        anio.toIntOrNull(),
-                        tipo,
-                        patente,
-                        estado,
-                        sucursal,
-                        tallerAsignado.ifBlank { null },
-                        observaciones.ifBlank { null }
+                    val db = AppDatabase.getDatabase(navController.context)
+                    val vehiculoDao = db.vehiculoDao()
+
+                    val nuevoVehiculo = VehiculoEntity(
+                        marca = marca,
+                        modelo = modelo,
+                        anio = anio.toIntOrNull(),
+                        tipo = tipo,
+                        patente = patente,
+                        estado = estado,
+                        sucursal = sucursal,
+                        tallerAsignado = tallerAsignado.ifBlank { null },
+                        observaciones = observaciones.ifBlank { null }
                     )
+
+                    // ✅ Usar corrutina en lugar de LaunchedEffect
+                    coroutineScope.launch {
+                        vehiculoDao.insertVehiculo(nuevoVehiculo)
+                        navController.popBackStack() // volver a la lista
+                    }
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -171,8 +196,7 @@ fun <T> DropdownSelector(
 @Composable
 fun VehicleFormScreenPreview() {
     val navController = rememberNavController()
-
-    SalfaAppTheme { // o el nombre de tu tema
+    SalfaAppTheme {
         VehicleFormScreen(
             navController = navController,
             onLogout = {},
