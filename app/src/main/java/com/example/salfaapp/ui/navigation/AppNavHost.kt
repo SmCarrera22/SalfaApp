@@ -45,14 +45,19 @@ fun AppNavHost(
             }
         }
 
-        composable(NavRoutes.CarProfile.route) {
+        composable(route = NavRoutes.CarProfile.route) {
+            backStackEntry ->
+            val vehiculoId = backStackEntry.arguments?.getString("vehiculoId")?.toLongOrNull()
+
             SalfaScaffold(
                 title = "Ficha del Vehículo",
                 navController = navController,
                 onLogout = onLogout
             ) { innerPadding ->
-                // Llamada sin pasar modifier
-                CarProfileScreen(navController = navController)
+                CarProfileScreen(
+                    navController = navController,
+                    vehiculoId = vehiculoId
+                )
             }
         }
 

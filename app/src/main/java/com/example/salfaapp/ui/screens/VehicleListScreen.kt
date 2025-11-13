@@ -14,7 +14,6 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.salfaapp.domain.model.data.config.AppDatabase
 import com.example.salfaapp.domain.model.data.entities.VehiculoEntity
-import com.example.salfaapp.ui.navigation.NavRoutes
 import com.example.salfaapp.ui.theme.SalfaAppTheme
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -84,7 +83,7 @@ fun VehicleListScreen(
                             .padding(vertical = 6.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                         onClick = {
-                            // Aquí puedes navegar a un detalle o acción con el vehículo
+                            navController.navigate(NavRoutes.CarProfile.createRoute(vehiculo.id))
                         }
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {

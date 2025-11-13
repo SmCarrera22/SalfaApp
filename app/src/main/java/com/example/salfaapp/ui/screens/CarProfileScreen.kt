@@ -1,100 +1,102 @@
 package com.example.salfaapp.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.font.FontWeight
 import androidx.navigation.NavHostController
+import com.example.salfaapp.domain.model.data.config.AppDatabase
+import com.example.salfaapp.domain.model.data.entities.VehiculoEntity
 import com.example.salfaapp.ui.components.SalfaScaffold
+import kotlinx.coroutines.launch
 
 @Composable
 fun CarProfileScreen(
     navController: NavHostController,
-    patente: String = "KVVZ63",
-    sucursal: String = "Santiago",
-    marca: String = "Volkswagen",
-    modelo: String = "Golf MK7",
-    tipo: String = "Hatchback",
-    anio: Int = 2018,
-    version: String = "1.4 Sport Plus",
-    transmision: String = "Automática",
-    traccion: String = "Delantera",
-    regimen: String = "Gasolina",
-    fechaIngreso: String = "12/03/2023",
+    vehiculoId: Long?,
     onLogout: () -> Unit = {}
 ) {
+    val context = navController.context
+    val db = remember { AppDatabase.getDatabase(context) }
+    val vehiculoDao = remember { db.vehiculoDao() }
+    var vehiculo by remember { mutableStateOf<VehiculoEntity?>(null) }
+    val scope = rememberCoroutineScope()
+
+    // Cargar el vehículo desde la base de datos
+    LaunchedEffect(vehiculoId) {
+        if (vehiculoId != null) {
+            scope.launch {
+                vehiculo = vehiculoDao.getVehiculoById(vehiculoId)
+            }
+        }
+    }
+
     SalfaScaffold(
-        title = "Salfa",
+        title = "Ficha del Vehículo",
         navController = navController,
         onLogout = onLogout
     ) { innerPadding ->
-        Column(
+        vehiculo?.let { v ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Top,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(4.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Patente: ${v.patente} / ${v.sucursal}",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "${v.marca} ${v.modelo}",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(4.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Ficha Vehículo",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 20.sp
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        VehicleDetailItem("Año", v.anio?.toString() ?: "—")
+                        VehicleDetailItem("Tipo", v.tipo.name)
+                        VehicleDetailItem("Estado", v.estado.name)
+                        VehicleDetailItem("Sucursal", v.sucursal.name)
+                        VehicleDetailItem("Taller", v.tallerAsignado ?: "—")
+                        VehicleDetailItem("Observaciones", v.observaciones ?: "—")
+                    }
+                }
+            }
+        } ?: Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(innerPadding),
+            contentAlignment = Alignment.Center
         ) {
-            // --- Tarjeta superior con datos básicos ---
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(4.dp, RoundedCornerShape(12.dp)),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "$patente / $sucursal",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "$marca $modelo",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // --- Tarjeta inferior con ficha del vehículo ---
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(4.dp, RoundedCornerShape(12.dp)),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Ficha Vehículo",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    VehicleDetailItem("Tipo", tipo)
-                    VehicleDetailItem("Año", anio.toString())
-                    VehicleDetailItem("Versión", version)
-                    VehicleDetailItem("Transmisión", transmision)
-                    VehicleDetailItem("Tracción", traccion)
-                    VehicleDetailItem("Régimen", regimen)
-                    VehicleDetailItem("Fecha Ingreso SAP", fechaIngreso)
-                }
-            }
+            Text("Cargando información del vehículo…")
         }
     }
 }
@@ -117,3 +119,4 @@ fun VehicleDetailItem(label: String, value: String) {
         )
     }
 }
+
