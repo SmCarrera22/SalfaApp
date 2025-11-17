@@ -2,6 +2,7 @@ package com.example.salfaapp.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
+import androidx.compose.material3.Button
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -9,6 +10,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.example.salfaapp.domain.model.EstadoVehiculo
 import com.example.salfaapp.domain.model.data.config.AppDatabase
 import com.example.salfaapp.domain.model.data.entities.VehiculoEntity
 import com.example.salfaapp.ui.components.SalfaScaffold
@@ -26,12 +28,15 @@ fun CarProfileScreen(
     var vehiculo by remember { mutableStateOf<VehiculoEntity?>(null) }
     val scope = rememberCoroutineScope()
 
-    // Cargar el vehículo desde la base de datos
+    // Estado seleccionado en el dropdown
+    var estadoSeleccionado by remember { mutableStateOf<EstadoVehiculo?>(null) }
+    var menuExpandido by remember { mutableStateOf(false) }
+    var mensajeActualizado by remember { mutableStateOf(false) }
+
     LaunchedEffect(vehiculoId) {
         if (vehiculoId != null) {
-            scope.launch {
-                vehiculo = vehiculoDao.getVehiculoById(vehiculoId)
-            }
+            vehiculo = vehiculoDao.getVehiculoById(vehiculoId)
+            estadoSeleccionado = vehiculo?.estado //Seleccionar el actual
         }
     }
 
@@ -40,6 +45,7 @@ fun CarProfileScreen(
         navController = navController,
         onLogout = onLogout
     ) { innerPadding ->
+
         vehiculo?.let { v ->
             Column(
                 modifier = Modifier
@@ -49,6 +55,9 @@ fun CarProfileScreen(
                 verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // =========================
+                // === CARD: FICHA BÁSICA ===
+                // =========================
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     elevation = CardDefaults.cardElevation(4.dp)
@@ -68,6 +77,9 @@ fun CarProfileScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // =========================
+                // === CARD: FICHA COMPLETA ==
+                // =========================
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     elevation = CardDefaults.cardElevation(4.dp)
@@ -89,11 +101,83 @@ fun CarProfileScreen(
                         VehicleDetailItem("Observaciones", v.observaciones ?: "—")
                     }
                 }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // ================================================
+                // ===== CARD: CAMBIO DE ESTADO DEL VEHÍCULO ======
+                // ================================================
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(6.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Estado del Vehículo",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 20.sp
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Dropdown de estados
+                        Box {
+                            OutlinedButton(
+                                onClick = { menuExpandido = true },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(text = estadoSeleccionado?.name ?: "Seleccionar Estado")
+                            }
+
+                            DropdownMenu(
+                                expanded = menuExpandido,
+                                onDismissRequest = { menuExpandido = false }
+                            ) {
+                                EstadoVehiculo.values().forEach { estado ->
+                                    DropdownMenuItem(
+                                        text = { Text(estado.name) },
+                                        onClick = {
+                                            estadoSeleccionado = estado
+                                            menuExpandido = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Botón Actualizar
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    if (estadoSeleccionado != null) {
+                                        val actualizado = v.copy(estado = estadoSeleccionado!!)
+                                        vehiculoDao.updateVehiculo(actualizado)
+                                        vehiculo = actualizado
+                                        mensajeActualizado = true
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Actualizar")
+                        }
+
+                        if (mensajeActualizado) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                "Estado actualizado correctamente",
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
             }
         } ?: Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
+            modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             Text("Cargando información del vehículo…")
@@ -104,19 +188,13 @@ fun CarProfileScreen(
 @Composable
 fun VehicleDetailItem(label: String, value: String) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
             text = "$label:",
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
         )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium
-        )
+        Text(text = value, style = MaterialTheme.typography.bodyMedium)
     }
 }
-
