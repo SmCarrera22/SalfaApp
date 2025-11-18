@@ -57,6 +57,16 @@ fun SalfaScaffold(
                 )
 
                 NavigationDrawerItem(
+                    label = { Text("Talleres") },
+                    selected = false,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        navController.navigate(NavRoutes.TallerList.route)
+                    },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+
+                NavigationDrawerItem(
                     label = { Text("Cerrar sesión") },
                     selected = false,
                     onClick = {
