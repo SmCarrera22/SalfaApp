@@ -13,6 +13,7 @@ import androidx.navigation.NavHostController
 import com.example.salfaapp.domain.model.EstadoVehiculo
 import com.example.salfaapp.domain.model.data.config.AppDatabase
 import com.example.salfaapp.domain.model.data.entities.VehiculoEntity
+import com.example.salfaapp.domain.model.data.entities.VehiculoMovimientoEntity
 import com.example.salfaapp.ui.components.SalfaScaffold
 import kotlinx.coroutines.launch
 
@@ -24,8 +25,13 @@ fun CarProfileScreen(
 ) {
     val context = navController.context
     val db = remember { AppDatabase.getDatabase(context) }
+
     val vehiculoDao = remember { db.vehiculoDao() }
+    val movimientoDao = remember { db.movimientoDao() }
+
     var vehiculo by remember { mutableStateOf<VehiculoEntity?>(null) }
+    var historial by remember { mutableStateOf<List<VehiculoMovimientoEntity>>(emptyList()) }
+
     val scope = rememberCoroutineScope()
 
     // Estado seleccionado en el dropdown
@@ -33,10 +39,21 @@ fun CarProfileScreen(
     var menuExpandido by remember { mutableStateOf(false) }
     var mensajeActualizado by remember { mutableStateOf(false) }
 
+    // ============================
+    // Cargar vehículo y su historial
+    // ============================
     LaunchedEffect(vehiculoId) {
         if (vehiculoId != null) {
+
             vehiculo = vehiculoDao.getVehiculoById(vehiculoId)
-            estadoSeleccionado = vehiculo?.estado //Seleccionar el actual
+            estadoSeleccionado = vehiculo?.estado
+
+            // RECOLECTAR FLOW DE HISTORIAL
+            launch {
+                movimientoDao.getMovimientosByVehiculo(vehiculoId).collect { lista ->
+                    historial = lista
+                }
+            }
         }
     }
 
@@ -115,14 +132,13 @@ fun CarProfileScreen(
                         Text(
                             text = "Estado del Vehículo",
                             style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 20.sp
+                                fontWeight = FontWeight.Bold, fontSize = 20.sp
                             )
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Dropdown de estados
+                        // Dropdown
                         Box {
                             OutlinedButton(
                                 onClick = { menuExpandido = true },
@@ -154,9 +170,21 @@ fun CarProfileScreen(
                             onClick = {
                                 scope.launch {
                                     if (estadoSeleccionado != null) {
+
+                                        // 1) Actualizamos vehículo
                                         val actualizado = v.copy(estado = estadoSeleccionado!!)
                                         vehiculoDao.updateVehiculo(actualizado)
                                         vehiculo = actualizado
+
+                                        // 2) Registramos movimiento
+                                        val movimiento = VehiculoMovimientoEntity(
+                                            vehiculoId = v.id,
+                                            estadoAnterior = v.estado,
+                                            estadoNuevo = estadoSeleccionado!!,
+                                            fechaHora = System.currentTimeMillis()
+                                        )
+                                        movimientoDao.insertMovimiento(movimiento)
+
                                         mensajeActualizado = true
                                     }
                                 }
@@ -175,13 +203,54 @@ fun CarProfileScreen(
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // =================================
+                // === CARD: HISTORIAL MOVIMIENTOS ==
+                // =================================
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(6.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Historial de Movimientos",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 20.sp
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        if (historial.isEmpty()) {
+                            Text("Sin movimientos registrados.")
+                        } else {
+                            historial.forEach { mov ->
+                                Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                                    Text("• Estado: ${mov.estadoNuevo}")
+                                    Text(
+                                        "Fecha: ${
+                                            java.text.SimpleDateFormat("dd/MM/yyyy HH:mm")
+                                                .format(mov.fechaHora)
+                                        }",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                                Divider()
+                            }
+                        }
+                    }
+                }
             }
-        } ?: Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("Cargando información del vehículo…")
         }
+            ?: Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Cargando información del vehículo…")
+            }
     }
 }
 
@@ -193,7 +262,9 @@ fun VehicleDetailItem(label: String, value: String) {
     ) {
         Text(
             text = "$label:",
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.Medium
+            )
         )
         Text(text = value, style = MaterialTheme.typography.bodyMedium)
     }
