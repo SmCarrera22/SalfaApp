@@ -14,7 +14,7 @@ class TallerViewModel(
 ) : ViewModel() {
 
     val talleres: StateFlow<List<TallerEntity>> =
-        repo.talleres.stateIn(
+        repo.getAllTalleres().stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000),
             emptyList()

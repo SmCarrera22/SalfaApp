@@ -10,6 +10,7 @@ import androidx.navigation.compose.composable
 import com.example.salfaapp.domain.model.Vehiculo
 import com.example.salfaapp.domain.model.data.config.AppDatabase
 import com.example.salfaapp.domain.model.data.repository.TallerRepository
+import com.example.salfaapp.domain.model.data.repository.VehiculoRepository
 import com.example.salfaapp.ui.components.SalfaScaffold
 import com.example.salfaapp.ui.screens.CarProfileScreen
 import com.example.salfaapp.ui.screens.DashboardScreen
@@ -18,6 +19,8 @@ import com.example.salfaapp.ui.screens.TallerListScreen
 import com.example.salfaapp.ui.screens.TallerProfileScreen
 import com.example.salfaapp.ui.screens.VehicleFormScreen
 import com.example.salfaapp.ui.screens.VehicleListScreen
+import com.example.salfaapp.ui.viewModel.DashboardViewModel
+import com.example.salfaapp.ui.viewModel.DashboardViewModelFactory
 import com.example.salfaapp.ui.viewModel.TallerViewModel
 import com.example.salfaapp.ui.viewModel.TallerViewModelFactory
 
@@ -32,12 +35,23 @@ fun AppNavHost(
         startDestination = NavRoutes.Dashboard.route
     ) {
         composable(NavRoutes.Dashboard.route) {
+
+            val context = LocalContext.current
+            val db = AppDatabase.getDatabase(context)
+
+            val vehiculoRepo = VehiculoRepository(db.vehiculoDao())
+            val tallerRepo = TallerRepository(db.tallerDao())
+
+            val dashboardViewModel: DashboardViewModel =
+                viewModel(factory = DashboardViewModelFactory(vehiculoRepo, tallerRepo))
+
             SalfaScaffold(
                 title = "Dashboard Salfa",
                 navController = navController,
                 onLogout = onLogout
             ) {
                 DashboardScreen(
+                    viewModel = dashboardViewModel,
                     onNavigateToVehicles = { navController.navigate(NavRoutes.VehicleList.route) },
                     onLogout = onLogout
                 )
