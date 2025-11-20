@@ -1,7 +1,8 @@
 package com.example.salfaapp.domain.model
 
 enum class TipoVehiculo {
-    AUTO,
+    SEDAN,
+    HATCHBACK,
     CAMIONETA,
     SUV,
     PICKUP

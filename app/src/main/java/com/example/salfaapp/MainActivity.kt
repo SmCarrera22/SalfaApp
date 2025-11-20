@@ -4,91 +4,83 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewScreenSizes
+import androidx.navigation.compose.rememberNavController
+import com.example.salfaapp.domain.model.EstadoVehiculo
+import com.example.salfaapp.domain.model.Sucursal
+import com.example.salfaapp.domain.model.TipoVehiculo
+import com.example.salfaapp.domain.model.Vehiculo
+import com.example.salfaapp.domain.usecase.*
+import com.example.salfaapp.ui.navigation.AppNavHost
+import com.example.salfaapp.ui.screens.LoginScreen
 import com.example.salfaapp.ui.theme.SalfaAppTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // ---- Datos iniciales para pruebas ----
+        val listaVehiculos = mutableListOf<Vehiculo>()
+
+        val registrarVehiculo = RegistrarVehiculoUseCase(listaVehiculos)
+        val actualizarEstado = ActualizarEstadoVehiculoUseCase(listaVehiculos)
+        val asignarTaller = AsignarTallerUseCase(listaVehiculos)
+        val listarPorEstado = ListarVehiculosPorEstadoUseCase(listaVehiculos)
+
+        val v1 = Vehiculo(
+            id = 1,
+            marca = "Volkswagen",
+            modelo = "Golf MK7",
+            anio = 2018,
+            tipo = TipoVehiculo.HATCHBACK,
+            patente = "KVVZ63",
+            estado = EstadoVehiculo.Nuevo_Ingreso,
+            sucursal = Sucursal.Autopark,
+            observaciones = "Nuevo ingreso"
+        )
+
+        val v2 = Vehiculo(
+            id = 2,
+            marca = "Chery",
+            modelo = "Tiggo 7 Pro",
+            anio = 2022,
+            tipo = TipoVehiculo.SUV,
+            patente = "RRLX22",
+            estado = EstadoVehiculo.Pendiente_Revision,
+            sucursal = Sucursal.Movicenter,
+            observaciones = "Nuevo Ingreso"
+        )
+
+        registrarVehiculo(v1)
+        registrarVehiculo(v2)
+
         enableEdgeToEdge()
         setContent {
             SalfaAppTheme {
-                SalfaAppApp()
+                SalfaAppApp(listaVehiculos)
             }
         }
     }
 }
 
-@PreviewScreenSizes
 @Composable
-fun SalfaAppApp() {
-    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
+fun SalfaAppApp(listaVehiculos: List<Vehiculo>) {
+    var isLoggedIn by rememberSaveable { mutableStateOf(false) }
 
-    NavigationSuiteScaffold(
-        navigationSuiteItems = {
-            AppDestinations.entries.forEach {
-                item(
-                    icon = {
-                        Icon(
-                            it.icon,
-                            contentDescription = it.label
-                        )
-                    },
-                    label = { Text(it.label) },
-                    selected = it == currentDestination,
-                    onClick = { currentDestination = it }
-                )
-            }
-        }
-    ) {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            Greeting(
-                name = "Android",
-                modifier = Modifier.padding(innerPadding)
-            )
-        }
-    }
-}
+    if (!isLoggedIn) {
+        // Pantalla de Login
+        LoginScreen(
+            onLoginSuccess = { isLoggedIn = true }
+        )
+    } else {
+        // Navegación entre pantallas después del login
+        val navController = rememberNavController()
 
-enum class AppDestinations(
-    val label: String,
-    val icon: ImageVector,
-) {
-    HOME("Home", Icons.Default.Home),
-    FAVORITES("Favorites", Icons.Default.Favorite),
-    PROFILE("Profile", Icons.Default.AccountBox),
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    SalfaAppTheme {
-        Greeting("Android")
+        AppNavHost(
+            navController = navController,
+            onLogout = { isLoggedIn = false },
+            vehiculos = listaVehiculos
+        )
     }
 }

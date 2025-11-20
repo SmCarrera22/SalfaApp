@@ -5,9 +5,10 @@ class Vehiculo (
     var marca: String,
     var modelo: String,
     var anio: Int,
-    var tipo: String,
+    var tipo: TipoVehiculo,
     var patente: String,
     var estado: EstadoVehiculo,
+    var sucursal: Sucursal,
     var tallerAsignado: String? = null,
     var observaciones: String? = null
 ) {

@@ -1,6 +1,6 @@
 package com.example.salfaapp.domain.model
 
-class Empleado (
+open class Empleado (
     val id: Int,
     val nombre: String,
     val apellidoPaterno: String,
