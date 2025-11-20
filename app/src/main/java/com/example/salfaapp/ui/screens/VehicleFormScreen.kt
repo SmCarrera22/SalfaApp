@@ -1,6 +1,8 @@
 package com.example.salfaapp.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -55,7 +57,8 @@ fun VehicleFormScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             OutlinedTextField(
@@ -89,9 +92,24 @@ fun VehicleFormScreen(
 
             OutlinedTextField(
                 value = patente,
-                onValueChange = { patente = it.uppercase() },
+                onValueChange = { input ->
+
+                    // Filtrar solo letras y números
+                    val filtered = input
+                        .uppercase()
+                        .filter { it.isLetterOrDigit() }
+
+                    // Limitar a 6 caracteres
+                    if (filtered.length <= 6) {
+                        patente = filtered
+                    }
+                },
                 label = { Text("Patente") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                supportingText = {
+                    if (patente.length < 6)
+                        Text("Debe tener 6 caracteres alfanuméricos")
+                }
             )
 
             DropdownSelector(
@@ -126,13 +144,31 @@ fun VehicleFormScreen(
 
             Button(
                 onClick = {
+                    // --- VALIDACIÓN DE PATENTE ---
+                    val patenteRegex = Regex("^[A-Z0-9]{1,6}$")
+
+                    if (!patenteRegex.matches(patente)) {
+                        // Puedes usar Snackbar, diálogo o imprimir error.
+                        // Ejemplo con Log:
+                        println("Patente inválida: Debe tener máx 6 caracteres, solo letras y números.")
+                        return@Button // ❌ Detiene el proceso y no guarda
+                    }
+
+                    // --- VALIDACIÓN DE AÑO ---
+                    val anioInt = anio.toIntOrNull()
+                    if (anio.isNotBlank() && anioInt == null) {
+                        println("El año debe ser numérico.")
+                        return@Button
+                    }
+
+                    // --- SI TODO OK, PROCEDER A GUARDAR ---
                     val db = AppDatabase.getDatabase(navController.context)
                     val vehiculoDao = db.vehiculoDao()
 
                     val nuevoVehiculo = VehiculoEntity(
                         marca = marca,
                         modelo = modelo,
-                        anio = anio.toIntOrNull(),
+                        anio = anioInt,
                         tipo = tipo,
                         patente = patente,
                         estado = estado,
@@ -141,10 +177,9 @@ fun VehicleFormScreen(
                         observaciones = observaciones.ifBlank { null }
                     )
 
-                    // ✅ Usar corrutina en lugar de LaunchedEffect
                     coroutineScope.launch {
                         vehiculoDao.insertVehiculo(nuevoVehiculo)
-                        navController.popBackStack() // volver a la lista
+                        navController.popBackStack()
                     }
                 },
                 modifier = Modifier.fillMaxWidth()

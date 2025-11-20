@@ -45,7 +45,7 @@ fun LoginScreen(
         ) {
             // Título principal
             Text(
-                text = "Bienvenido a SalfaApp",
+                text = "Bienvenido",
                 style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center
             )
