@@ -8,10 +8,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.salfaapp.domain.model.Vehiculo
 import com.example.salfaapp.domain.model.data.config.AppDatabase
-import com.example.salfaapp.domain.model.data.repository.TallerRepository
-import com.example.salfaapp.domain.model.data.repository.VehiculoRepository
+import com.example.salfaapp.network.RetrofitWeatherClient
+import com.example.salfaapp.network.api.remote.WeatherApi
+import com.example.salfaapp.network.repository.WeatherRepository
 import com.example.salfaapp.ui.components.SalfaScaffold
-import com.example.salfaapp.ui.screens.CarProfileScreen
 import com.example.salfaapp.ui.screens.DashboardScreen
 import com.example.salfaapp.ui.screens.TallerFormScreen
 import com.example.salfaapp.ui.screens.TallerListScreen
@@ -24,6 +24,8 @@ import com.example.salfaapp.ui.viewModel.TallerViewModel
 import com.example.salfaapp.ui.viewModel.TallerViewModelFactory
 import com.example.salfaapp.ui.viewModel.VehiculoViewModel
 import com.example.salfaapp.ui.viewModel.VehiculoViewModelFactory
+import com.example.salfaapp.ui.weather.WeatherViewModel
+import com.example.salfaapp.ui.weather.WeatherViewModelFactory
 
 @Composable
 fun AppNavHost(
@@ -64,6 +66,11 @@ fun AppNavHost(
         db.tallerDao()
     )
 
+    val weatherApi = RetrofitWeatherClient.instance
+        .create(WeatherApi::class.java)
+
+    val weatherRepository = WeatherRepository(weatherApi, "8f547d1e534a7186dd9fc31a158afe74")
+
     NavHost(
         navController = navController,
         startDestination = NavRoutes.Dashboard.route
@@ -72,6 +79,7 @@ fun AppNavHost(
         // ---------- DASHBOARD ----------
         composable(NavRoutes.Dashboard.route) {
 
+            // --- ViewModels principales ---
             val dashboardViewModel: DashboardViewModel = viewModel(
                 factory = DashboardViewModelFactory(
                     vehiculoLocalRepo,
@@ -81,6 +89,11 @@ fun AppNavHost(
                 )
             )
 
+            // --- WeatherViewModel para clima ---
+            val weatherViewModel: WeatherViewModel = viewModel(
+                factory = WeatherViewModelFactory(weatherRepository)
+            )
+
             SalfaScaffold(
                 title = "Dashboard Salfa",
                 navController = navController,
@@ -88,6 +101,7 @@ fun AppNavHost(
             ) { innerPadding ->
                 DashboardScreen(
                     viewModel = dashboardViewModel,
+                    weatherViewModel = weatherViewModel,
                     onNavigateToVehicles = { navController.navigate(NavRoutes.VehicleList.route) },
                     onLogout = onLogout
                 )
@@ -111,8 +125,13 @@ fun AppNavHost(
                 onLogout = onLogout
             ) {
                 VehicleListScreen(
-                    navController = navController,
-                    viewModel = vehiculoViewModel
+                    viewModel = vehiculoViewModel,
+                    onAddVehicle = {
+                        navController.navigate(NavRoutes.VehicleForm.createRoute(-1))
+                    },
+                    onVehicleSelected = { id ->
+                        navController.navigate(NavRoutes.CarProfile.createRoute(id))
+                    }
                 )
             }
         }
