@@ -27,7 +27,7 @@ interface VehiculoDao {
     @Query("DELETE FROM vehiculos")
     suspend fun deleteAll()
 
-    @Query("SELECT * FROM vehiculos WHERE id = :vehiculoId LIMIT 1")
-    suspend fun getVehiculoById(vehiculoId: Long): VehiculoEntity?
+    @Query("SELECT * FROM vehiculos WHERE id = :id LIMIT 1")
+    suspend fun getVehiculoById(id: Long): VehiculoEntity?
 
 }

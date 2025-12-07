@@ -31,22 +31,55 @@ fun AppNavHost(
     onLogout: () -> Unit,
     vehiculos: List<Vehiculo> = emptyList()
 ) {
+
+    // ---------------------------------------------
+    // 🔵 1) Crear Retrofit + DAOs + Repos globales
+    // ---------------------------------------------
+    val context = LocalContext.current
+    val db = AppDatabase.getDatabase(context)
+
+    // --- Retrofit APIs ---
+    val vehiculoApi = com.example.salfaapp.network.RetrofitVehicleClient.instance
+        .create(com.example.salfaapp.network.api.VehiculoApi::class.java)
+
+    val tallerApi = com.example.salfaapp.network.RetrofitTallerClient.instance
+        .create(com.example.salfaapp.network.api.TallerApi::class.java)
+
+    // --- Remote repos (Retrofit + DAOs) ---
+    val vehiculoRemoteRepo = com.example.salfaapp.network.repository.VehiculoRemoteRepository(
+        vehiculoApi,
+        db.vehiculoDao()
+    )
+
+    val tallerRemoteRepo = com.example.salfaapp.network.repository.TallerRemoteRepository(
+        tallerApi,
+        db.tallerDao()
+    )
+
+    // --- Local repos (solo Room) ---
+    val vehiculoLocalRepo = com.example.salfaapp.domain.model.data.repository.VehiculoRepository(
+        db.vehiculoDao()
+    )
+    val tallerLocalRepo = com.example.salfaapp.domain.model.data.repository.TallerRepository(
+        db.tallerDao()
+    )
+
     NavHost(
         navController = navController,
         startDestination = NavRoutes.Dashboard.route
     ) {
+
         // ---------- DASHBOARD ----------
         composable(NavRoutes.Dashboard.route) {
-            val context = LocalContext.current
-            val db = AppDatabase.getDatabase(context)
 
-            // Repos
-            val vehiculoRepo = VehiculoRepository(db.vehiculoDao())
-            val tallerRepo = TallerRepository(db.tallerDao())
-
-            // ViewModel con factory (la factory que tengas debe aceptar (vehiculoRepo, tallerRepo))
-            val dashboardViewModel: DashboardViewModel =
-                viewModel(factory = DashboardViewModelFactory(vehiculoRepo, tallerRepo))
+            val dashboardViewModel: DashboardViewModel = viewModel(
+                factory = DashboardViewModelFactory(
+                    vehiculoLocalRepo,
+                    tallerLocalRepo,
+                    vehiculoRemoteRepo,
+                    tallerRemoteRepo
+                )
+            )
 
             SalfaScaffold(
                 title = "Dashboard Salfa",
@@ -64,18 +97,19 @@ fun AppNavHost(
         // ---------- VEHICLE LIST ----------
         composable(NavRoutes.VehicleList.route) {
 
-            val context = LocalContext.current
-            val db = AppDatabase.getDatabase(context)
-            val repo = VehiculoRepository(db.vehiculoDao())
-
             val vehiculoViewModel: VehiculoViewModel =
-                viewModel(factory = VehiculoViewModelFactory(repo))
+                viewModel(
+                    factory = VehiculoViewModelFactory(
+                        vehiculoLocalRepo,
+                        vehiculoRemoteRepo    // 👈 AGREGADO
+                    )
+                )
 
             SalfaScaffold(
                 title = "Vehículos",
                 navController = navController,
                 onLogout = onLogout
-            ) { innerPadding ->
+            ) {
                 VehicleListScreen(
                     navController = navController,
                     viewModel = vehiculoViewModel
@@ -83,31 +117,18 @@ fun AppNavHost(
             }
         }
 
-        // ---------- CAR PROFILE ----------
-        composable(route = NavRoutes.CarProfile.route) { backStackEntry ->
-            val vehiculoId = backStackEntry.arguments?.getString("vehiculoId")?.toLongOrNull()
-            SalfaScaffold(
-                title = "Ficha del Vehículo",
-                navController = navController,
-                onLogout = onLogout
-            ) { innerPadding ->
-                CarProfileScreen(
-                    navController = navController,
-                    vehiculoId = vehiculoId
-                )
-            }
-        }
-
-        // ---------- VEHICLE FORM (CREAR / EDITAR) ----------
+        // ---------- VEHICLE FORM ----------
         composable(NavRoutes.VehicleForm.route) { backStackEntry ->
 
             val id = backStackEntry.arguments?.getString("id")?.toLongOrNull()
-            val context = LocalContext.current
-            val db = AppDatabase.getDatabase(context)
-            val repo = VehiculoRepository(db.vehiculoDao())
 
             val viewModel: VehiculoViewModel =
-                viewModel(factory = VehiculoViewModelFactory(repo))
+                viewModel(
+                    factory = VehiculoViewModelFactory(
+                        vehiculoLocalRepo,
+                        vehiculoRemoteRepo
+                    )
+                )
 
             SalfaScaffold(
                 title = if (id == null || id == -1L) "Nuevo Vehículo" else "Editar Vehículo",
@@ -123,13 +144,32 @@ fun AppNavHost(
             }
         }
 
+        // ---------- TALLER LIST ----------
+        composable(NavRoutes.TallerList.route) {
+
+            val tallerViewModel: TallerViewModel =
+                viewModel(factory = TallerViewModelFactory(tallerLocalRepo, tallerRemoteRepo))
+
+            SalfaScaffold(
+                title = "Talleres",
+                navController = navController,
+                onLogout = onLogout
+            ) {
+                TallerListScreen(
+                    viewModel = tallerViewModel,
+                    onAddTaller = { navController.navigate(NavRoutes.TallerForm.route) },
+                    onTallerSelected = { id ->
+                        navController.navigate(NavRoutes.TallerProfile.createRoute(id))
+                    }
+                )
+            }
+        }
+
         // ---------- TALLER FORM ----------
         composable(NavRoutes.TallerForm.route) {
-            val context = LocalContext.current
-            val db = AppDatabase.getDatabase(context)
-            val repo = TallerRepository(db.tallerDao())
+
             val tallerViewModel: TallerViewModel =
-                viewModel(factory = TallerViewModelFactory(repo))
+                viewModel(factory = TallerViewModelFactory(tallerLocalRepo, tallerRemoteRepo))
 
             SalfaScaffold(
                 title = "Registrar Taller",
@@ -144,50 +184,23 @@ fun AppNavHost(
             }
         }
 
-        // ---------- TALLER LIST ----------
-        composable(NavRoutes.TallerList.route) {
-            val context = LocalContext.current
-            val db = AppDatabase.getDatabase(context)
-            val repo = TallerRepository(db.tallerDao())
-            val tallerViewModel: TallerViewModel =
-                viewModel(factory = TallerViewModelFactory(repo))
-
-            SalfaScaffold(
-                title = "Talleres",
-                navController = navController,
-                onLogout = onLogout
-            ) { innerPadding ->
-                TallerListScreen(
-                    viewModel = tallerViewModel,
-                    onAddTaller = { navController.navigate(NavRoutes.TallerForm.route) },
-                    onTallerSelected = { tallerId ->
-                        navController.navigate(NavRoutes.TallerProfile.createRoute(tallerId))
-                    }
-                )
-            }
-        }
-
         // ---------- TALLER PROFILE ----------
-        composable(route = NavRoutes.TallerProfile.route) { backStackEntry ->
+        composable(NavRoutes.TallerProfile.route) { backStackEntry ->
 
-            val tallerId = backStackEntry.arguments?.getString("tallerId")?.toIntOrNull()
-
-            val context = LocalContext.current
-            val db = AppDatabase.getDatabase(context)
-            val repo = TallerRepository(db.tallerDao())
+            val id = backStackEntry.arguments?.getString("tallerId")?.toIntOrNull()
 
             val tallerViewModel: TallerViewModel =
-                viewModel(factory = TallerViewModelFactory(repo))
+                viewModel(factory = TallerViewModelFactory(tallerLocalRepo, tallerRemoteRepo))
 
             SalfaScaffold(
-                title = "Ficha del Taller",
+                title = "Ficha Taller",
                 navController = navController,
                 onLogout = onLogout
-            ) { innerPadding ->
+            ) { padding ->
                 TallerProfileScreen(
                     navController = navController,
-                    viewModel = tallerViewModel,    // ← AGREGADO
-                    tallerId = tallerId,
+                    viewModel = tallerViewModel,
+                    tallerId = id,
                     onLogout = onLogout
                 )
             }

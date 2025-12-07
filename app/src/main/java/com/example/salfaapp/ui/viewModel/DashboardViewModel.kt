@@ -6,12 +6,32 @@ import com.example.salfaapp.domain.model.EstadoVehiculo
 import com.example.salfaapp.domain.model.TipoTaller
 import com.example.salfaapp.domain.model.data.repository.TallerRepository
 import com.example.salfaapp.domain.model.data.repository.VehiculoRepository
+import com.example.salfaapp.network.repository.TallerRemoteRepository
+import com.example.salfaapp.network.repository.VehiculoRemoteRepository
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 
 class DashboardViewModel(
     private val tallerRepo: TallerRepository,
-    private val vehiculoRepo: VehiculoRepository
+    private val vehiculoRepo: VehiculoRepository,
+    private val tallerRemoteRepo: TallerRemoteRepository,
+    private val vehiculoRemoteRepo: VehiculoRemoteRepository
 ) : ViewModel() {
+
+    init {
+        sincronizarDatos()
+    }
+
+    private fun sincronizarDatos() {
+        viewModelScope.launch {
+            try {
+                vehiculoRemoteRepo.syncFromServer()
+                tallerRemoteRepo.syncFromServer()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 
     val talleres = tallerRepo.getAllTalleres().stateIn(
         viewModelScope,
@@ -26,7 +46,6 @@ class DashboardViewModel(
     )
 
     // ----------- TALLERES -----------
-
     val totalTalleresDyP = talleres.map { list ->
         list.count { it.tipo == TipoTaller.DyP.name }
     }
@@ -35,9 +54,7 @@ class DashboardViewModel(
         list.count { it.tipo == TipoTaller.Mecanica.name }
     }
 
-
     // ----------- VEHÍCULOS -----------
-
     val totalStock = vehiculos.map { it.size }
 
     val vehiculosDisponibles = vehiculos.map { list ->

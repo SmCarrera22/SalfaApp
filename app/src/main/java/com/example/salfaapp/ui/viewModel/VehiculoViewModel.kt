@@ -4,57 +4,78 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.salfaapp.domain.model.data.entities.VehiculoEntity
 import com.example.salfaapp.domain.model.data.repository.VehiculoRepository
+import com.example.salfaapp.network.repository.VehiculoRemoteRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class VehiculoViewModel(
-    private val repository: VehiculoRepository
+    private val localRepo: VehiculoRepository,
+    private val remoteRepo: VehiculoRemoteRepository
 ) : ViewModel() {
 
-    // Lista completa de vehículos
-    private val _vehiculos = MutableStateFlow<List<VehiculoEntity>>(emptyList())
-    val vehiculos: StateFlow<List<VehiculoEntity>> = _vehiculos.asStateFlow()
+    // Lista de vehículos
+    val vehiculos: StateFlow<List<VehiculoEntity>> = localRepo.getAllVehiculos()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Vehículo cargado para edición
+    // Vehículo seleccionado (para edición)
     private val _vehiculoSeleccionado = MutableStateFlow<VehiculoEntity?>(null)
-    val vehiculoSeleccionado: StateFlow<VehiculoEntity?> = _vehiculoSeleccionado.asStateFlow()
+    val vehiculoSeleccionado: StateFlow<VehiculoEntity?> = _vehiculoSeleccionado
 
-    init {
-        cargarVehiculos()
+    fun cargarVehiculo(id: Int) {
+        viewModelScope.launch {
+            val encontrado = localRepo.getVehiculoById(id.toLong())
+            _vehiculoSeleccionado.value = encontrado
+        }
     }
 
-    fun cargarVehiculos() {
+    fun insertarVehiculo(
+        entity: VehiculoEntity,
+        onComplete: (() -> Unit)? = null,
+        onError: ((Throwable) -> Unit)? = null
+    ) {
         viewModelScope.launch {
-            repository.getAllVehiculos().collect {
-                _vehiculos.value = it
+            try {
+                val created = remoteRepo.createOnServer(entity)
+                localRepo.guardarVehiculo(created)
+                onComplete?.invoke()
+            } catch (t: Throwable) {
+                onError?.invoke(t)
             }
         }
     }
 
-    fun cargarVehiculo(id: Int) {
+    fun actualizarVehiculo(
+        entity: VehiculoEntity,
+        onComplete: (() -> Unit)? = null,
+        onError: ((Throwable) -> Unit)? = null
+    ) {
         viewModelScope.launch {
-            val vehiculo = _vehiculos.value.find { it.id.toInt() == id }
-            _vehiculoSeleccionado.value = vehiculo
+            try {
+                val updated = remoteRepo.updateOnServer(entity)
+                localRepo.guardarVehiculo(updated)
+                onComplete?.invoke()
+            } catch (t: Throwable) {
+                onError?.invoke(t)
+            }
         }
     }
 
-    fun insertarVehiculo(vehiculo: VehiculoEntity) {
+    fun eliminarVehiculo(
+        entity: VehiculoEntity,
+        onComplete: (() -> Unit)? = null,
+        onError: ((Throwable) -> Unit)? = null
+    ) {
         viewModelScope.launch {
-            repository.guardarVehiculo(vehiculo)
-        }
-    }
-
-    fun actualizarVehiculo(vehiculo: VehiculoEntity) {
-        viewModelScope.launch {
-            repository.guardarVehiculo(vehiculo) // misma función sirve si usas OnConflict.REPLACE
-        }
-    }
-
-    fun eliminarVehiculo(vehiculo: VehiculoEntity) {
-        viewModelScope.launch {
-            repository.eliminarVehiculo(vehiculo)
+            try {
+                remoteRepo.deleteOnServer(entity.id)
+                localRepo.eliminarVehiculo(entity)
+                onComplete?.invoke()
+            } catch (t: Throwable) {
+                onError?.invoke(t)
+            }
         }
     }
 }

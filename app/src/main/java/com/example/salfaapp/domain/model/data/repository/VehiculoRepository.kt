@@ -18,4 +18,8 @@ class VehiculoRepository(private val dao: VehiculoDao) {
     suspend fun eliminarVehiculo(vehiculo: VehiculoEntity) {
         dao.deleteVehiculo(vehiculo)
     }
+
+    suspend fun getVehiculoById(id: Long): VehiculoEntity? {
+        return dao.getVehiculoById(id)
+    }
 }
