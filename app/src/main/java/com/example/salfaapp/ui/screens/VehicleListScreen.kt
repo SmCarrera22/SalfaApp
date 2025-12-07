@@ -7,38 +7,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import com.example.salfaapp.domain.model.data.config.AppDatabase
-import com.example.salfaapp.domain.model.data.entities.VehiculoEntity
-import com.example.salfaapp.ui.theme.SalfaAppTheme
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
+import com.example.salfaapp.ui.viewModel.VehiculoViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VehicleListScreen(
-    navController: NavController
+    navController: NavController,
+    viewModel: VehiculoViewModel
 ) {
-    val context = navController.context
-    val db = remember { AppDatabase.getDatabase(context) }
-    val vehiculoDao = remember { db.vehiculoDao() }
-
-    // Estado que contendrá los vehículos obtenidos desde Room
-    var vehiculos by remember { mutableStateOf<List<VehiculoEntity>>(emptyList()) }
-
-    // Corrutina para recolectar el flujo de Room (Flow)
-    val scope = rememberCoroutineScope()
-    LaunchedEffect(Unit) {
-        scope.launch {
-            vehiculoDao.getAllVehiculos().collectLatest { lista ->
-                vehiculos = lista
-            }
-        }
-    }
+    val vehiculos by viewModel.vehiculos.collectAsState()
 
     Scaffold(
         topBar = {
@@ -48,7 +29,11 @@ fun VehicleListScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { navController.navigate(NavRoutes.VehicleForm.route) },
+                onClick = {
+                    navController.navigate(
+                        NavRoutes.VehicleForm.createRoute(-1L)  // crear vehículo
+                    )
+                },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(
@@ -60,12 +45,13 @@ fun VehicleListScreen(
         },
         floatingActionButtonPosition = FabPosition.End
     ) { innerPadding ->
+
         if (vehiculos.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
-                contentAlignment = androidx.compose.ui.Alignment.Center
+                contentAlignment = Alignment.Center
             ) {
                 Text("No hay vehículos registrados todavía.")
             }
@@ -83,7 +69,9 @@ fun VehicleListScreen(
                             .padding(vertical = 6.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                         onClick = {
-                            navController.navigate(NavRoutes.CarProfile.createRoute(vehiculo.id))
+                            navController.navigate(
+                                NavRoutes.CarProfile.createRoute(vehiculo.id)
+                            )
                         }
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
@@ -105,14 +93,5 @@ fun VehicleListScreen(
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun VehicleListScreenPreview() {
-    val navController = rememberNavController()
-    SalfaAppTheme {
-        VehicleListScreen(navController = navController)
     }
 }

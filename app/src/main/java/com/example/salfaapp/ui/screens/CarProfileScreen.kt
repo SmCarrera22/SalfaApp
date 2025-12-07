@@ -42,15 +42,14 @@ fun CarProfileScreen(
     var mensajeActualizado by remember { mutableStateOf(false) }
 
     // ============================
-    // Cargar vehículo y su historial
+    // Cargar vehículo y su historial (collect Flow)
     // ============================
     LaunchedEffect(vehiculoId) {
         if (vehiculoId != null) {
-
             vehiculo = vehiculoDao.getVehiculoById(vehiculoId)
             estadoSeleccionado = vehiculo?.estado
 
-            // RECOLECTAR FLOW DE HISTORIAL
+            // recolectar historial como Flow
             launch {
                 movimientoDao.getMovimientosByVehiculo(vehiculoId).collect { lista ->
                     historial = lista
@@ -124,6 +123,19 @@ fun CarProfileScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                Button(
+                    onClick = {
+                        navController.navigate(
+                            NavRoutes.VehicleForm.createRoute(vehiculoId ?: -1L)
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp)
+                ) {
+                    Text("Editar Vehículo")
+                }
+
                 // ================================================
                 // ===== CARD: CAMBIO DE ESTADO DEL VEHÍCULO ======
                 // ================================================
@@ -173,7 +185,6 @@ fun CarProfileScreen(
                             onClick = {
                                 scope.launch {
                                     if (estadoSeleccionado != null) {
-
                                         // 1) Actualizamos vehículo
                                         val actualizado = v.copy(estado = estadoSeleccionado!!)
                                         vehiculoDao.updateVehiculo(actualizado)
@@ -232,7 +243,7 @@ fun CarProfileScreen(
                         } else {
                             historial.forEach { mov ->
                                 Column(modifier = Modifier.padding(vertical = 6.dp)) {
-                                    Text("• Estado: ${mov.estadoNuevo}")
+                                    Text("• Estado: ${mov.estadoNuevo.name}")
                                     Text(
                                         "Fecha: ${
                                             java.text.SimpleDateFormat("dd/MM/yyyy HH:mm")
@@ -247,20 +258,21 @@ fun CarProfileScreen(
                     }
                 }
             }
+        } ?: Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Cargando información del vehículo…")
         }
-            ?: Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Cargando información del vehículo…")
-            }
     }
 }
 
 @Composable
 fun VehicleDetailItem(label: String, value: String) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(

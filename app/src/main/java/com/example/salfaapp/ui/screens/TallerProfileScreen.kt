@@ -13,28 +13,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import com.example.salfaapp.domain.model.data.config.AppDatabase
 import com.example.salfaapp.domain.model.data.entities.TallerEntity
 import com.example.salfaapp.ui.components.SalfaScaffold
+import com.example.salfaapp.ui.viewModel.TallerViewModel
 
 @Composable
 fun TallerProfileScreen(
     navController: NavHostController,
+    viewModel: TallerViewModel,
     tallerId: Int?,
     onLogout: () -> Unit = {}
 ) {
-    val context = navController.context
-    val db = remember { AppDatabase.getDatabase(context) }
-    val tallerDao = remember { db.tallerDao() }
-
-    var taller by remember { mutableStateOf<TallerEntity?>(null) }
-
-    // Cargar taller desde Room al entrar al screen
+    // 1) Pedimos al ViewModel que cargue el taller según su ID
     LaunchedEffect(tallerId) {
         if (tallerId != null) {
-            taller = tallerDao.getTallerById(tallerId)
+            viewModel.cargarTaller(tallerId)
         }
     }
+
+    // 2) Observamos el taller cargado
+    val taller by viewModel.tallerSeleccionado.collectAsState()
 
     SalfaScaffold(
         title = "Ficha del Taller",
@@ -43,70 +41,81 @@ fun TallerProfileScreen(
     ) { innerPadding ->
 
         taller?.let { t ->
-            Column(
+            TallerProfileContent(
+                t = t,
                 modifier = Modifier
-                    .fillMaxSize()
                     .padding(innerPadding)
                     .padding(16.dp)
-                    .verticalScroll(rememberScrollState())
-            ) {
-
-                // ================================
-                // CARD: INFORMACIÓN GENERAL
-                // ================================
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(4.dp)
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-
-                        Text(
-                            text = t.nombre,
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold
-                            )
-                        )
-
-                        Spacer(Modifier.height(8.dp))
-
-                        DetailRow(label = "ID", value = t.id.toString())
-                        DetailRow(label = "RUT", value = "${t.rut}-${t.codigoVerificador}")
-                        DetailRow(label = "Tipo", value = t.tipo)
-                    }
-                }
-
-                Spacer(Modifier.height(24.dp))
-
-                // ================================
-                // CARD: DIRECCIÓN Y ENCARGADO
-                // ================================
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(4.dp)
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-
-                        Text(
-                            text = "Información del Taller",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 20.sp
-                            )
-                        )
-
-                        Spacer(Modifier.height(12.dp))
-
-                        DetailRow("Dirección", t.direccion)
-                        DetailRow("Encargado", t.encargado)
-                    }
-                }
-            }
+            )
 
         } ?: Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             Text("Cargando información del taller…")
+        }
+    }
+}
+
+@Composable
+fun TallerProfileContent(
+    t: TallerEntity,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
+
+        // ================================
+        // CARD: INFORMACIÓN GENERAL
+        // ================================
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(4.dp)
+        ) {
+            Column(Modifier.padding(16.dp)) {
+
+                Text(
+                    text = t.nombre,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                DetailRow(label = "ID", value = t.id.toString())
+                DetailRow(label = "RUT", value = "${t.rut}-${t.codigoVerificador}")
+                DetailRow(label = "Tipo", value = t.tipo)
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        // ================================
+        // CARD: DIRECCIÓN Y ENCARGADO
+        // ================================
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(4.dp)
+        ) {
+            Column(Modifier.padding(16.dp)) {
+
+                Text(
+                    text = "Información del Taller",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    )
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                DetailRow("Dirección", t.direccion)
+                DetailRow("Encargado", t.encargado)
+            }
         }
     }
 }
@@ -129,15 +138,23 @@ fun DetailRow(label: String, value: String) {
     }
 }
 
-@Preview(showBackground = true)
 @Composable
+@Preview(showBackground = true)
 fun PreviewTallerProfileScreen() {
     val nav = rememberNavController()
-    val dummy = 1
 
-    TallerProfileScreen(
-        navController = nav,
-        tallerId = dummy,
-        onLogout = {}
+    // Se usa un objeto dummy SOLO para el preview (sin ViewModel real)
+    val dummyTaller = TallerEntity(
+        id = 1,
+        nombre = "Taller Ejemplo",
+        rut = 12345678,
+        codigoVerificador = 9,
+        tipo = "Mecánica",
+        direccion = "Av. Siempre Viva 123",
+        encargado = "Juan Pérez"
     )
+
+    MaterialTheme {
+        TallerProfileContent(t = dummyTaller)
+    }
 }

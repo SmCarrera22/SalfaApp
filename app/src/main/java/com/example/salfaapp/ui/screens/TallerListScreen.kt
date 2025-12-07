@@ -10,19 +10,16 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.salfaapp.domain.model.data.entities.TallerEntity
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 
 @Composable
 fun TallerListScreen(
     viewModel: TallerViewModel,
     onAddTaller: () -> Unit,
-    onTallerSelected: (Int) -> Unit // para editar/ver detalle
+    onTallerSelected: (Int) -> Unit
 ) {
-    val talleres by viewModel.talleres.collectAsState()
+    val talleres by viewModel.talleres.collectAsState(initial = emptyList())
 
     Scaffold(
         floatingActionButton = {
@@ -45,7 +42,11 @@ fun TallerListScreen(
                     modifier = Modifier.padding(16.dp)
                 )
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = 12.dp)
+                ) {
                     items(talleres) { taller ->
                         TallerItem(
                             taller = taller,

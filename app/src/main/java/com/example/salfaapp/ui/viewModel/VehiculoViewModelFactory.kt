@@ -2,16 +2,16 @@ package com.example.salfaapp.ui.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.salfaapp.domain.model.data.repository.TallerRepository
+import com.example.salfaapp.domain.model.data.repository.VehiculoRepository
 
-class TallerViewModelFactory(
-    private val repository: TallerRepository
+class VehiculoViewModelFactory(
+    private val repository: VehiculoRepository
 ) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(TallerViewModel::class.java)) {
+        if (modelClass.isAssignableFrom(VehiculoViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return TallerViewModel(repository) as T
+            return VehiculoViewModel(repository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

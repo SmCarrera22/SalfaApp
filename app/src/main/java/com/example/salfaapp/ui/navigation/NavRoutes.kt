@@ -19,6 +19,8 @@ sealed class NavRoutes(val route: String) {
     }
 
     // Formularios
-    object VehicleForm : NavRoutes("vehicleForm")
+    object VehicleForm : NavRoutes("vehicle_form/{id}") {
+        fun createRoute(id: Long?) = "vehicle_form/${id ?: -1}"
+    }
     object TallerForm : NavRoutes("tallerForm")
 }
